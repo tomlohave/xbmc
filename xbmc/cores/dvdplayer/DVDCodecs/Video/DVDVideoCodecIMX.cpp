@@ -468,7 +468,7 @@ void CDVDVideoCodecIMX::Dispose(void)
   // Invalidate output buffers to prevent the renderer from mapping this memory
   for (int i=0; i<m_vpuFrameBufferNum; i++)
   {
-    m_outputBuffers[i]->Invalidate(&m_vpuHandle);
+    m_outputBuffers[i]->ReleaseFramebuffer(&m_vpuHandle);
     SAFE_RELEASE(m_outputBuffers[i]);
   }
 
@@ -766,7 +766,7 @@ void CDVDVideoCodecIMX::Reset()
 
   // Invalidate all buffers
   for(int i=0; i < m_vpuFrameBufferNum; i++)
-    m_outputBuffers[i]->Invalidate(&m_vpuHandle);
+    m_outputBuffers[i]->ReleaseFramebuffer(&m_vpuHandle);
 
   // Flush VPU
   ret = VPU_DecFlushAll(m_vpuHandle);
