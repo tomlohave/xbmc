@@ -26,9 +26,6 @@
 #endif
 
 #if HAS_GLES == 2
-#ifdef HAS_IMXVPU
-#define GL_GLEXT_PROTOTYPES
-#endif
 #include "system_gl.h"
 
 #include <locale.h>
@@ -81,8 +78,9 @@ static PFNGLEGLIMAGETARGETTEXTURE2DOESPROC glEGLImageTargetTexture2DOES;
 
 #ifdef HAS_IMXVPU
 // GLES extension functions
-#include <GLES2/gl2.h>
-#include <GLES2/gl2ext.h>
+#define GL_GLEXT_PROTOTYPES
+#include <GLES/gl.h>
+#include <GLES/glext.h>
 #endif
 
 #if defined(TARGET_ANDROID)
