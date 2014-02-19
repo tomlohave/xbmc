@@ -548,7 +548,7 @@ int CDVDVideoCodecIMX::Decode(BYTE *pData, int iSize, double dts, double pts)
   {
     if (m_outputBuffers[i]->Rendered())
     {
-      ret = m_outputBuffers[i]->ClearDisplay(&m_vpuHandle);
+      ret = m_outputBuffers[i]->ReleaseFramebuffer(&m_vpuHandle);
       if(ret != VPU_DEC_RET_SUCCESS)
       {
         CLog::Log(LOGERROR, "%s: vpu clear frame display failure: ret=%d \r\n",__FUNCTION__,ret);
@@ -913,24 +913,6 @@ bool CDVDVideoCodecIMXBuffer::IsValid()
   return m_frameBuffer != NULL;
 }
 
-void CDVDVideoCodecIMXBuffer::Invalidate(VpuDecHandle *handle)
-{
-  CSingleLock lock(CDVDVideoCodecIMX::m_codecBufferLock);
-#ifdef TRACE_FRAMES
-  CLog::Log(LOGDEBUG, "I  %02d\n", m_idx);
-#endif
-  if((m_frameBuffer != NULL) && *handle)
-  {
-    VpuDecRetCode ret = VPU_DecOutFrameDisplayed(*handle, m_frameBuffer);
-    if(ret != VPU_DEC_RET_SUCCESS)
-      CLog::Log(LOGERROR, "%s: vpu clear frame display failure: ret=%d \r\n",__FUNCTION__,ret);
-  }
-
-  m_frameBuffer = NULL;
-  m_rendered = false;
-  m_pts = DVD_NOPTS_VALUE;
-}
-
 bool CDVDVideoCodecIMXBuffer::Rendered()
 {
   return m_rendered;
@@ -938,13 +920,22 @@ bool CDVDVideoCodecIMXBuffer::Rendered()
 
 void CDVDVideoCodecIMXBuffer::Queue(VpuFrameBuffer *buffer)
 {
+  CSingleLock lock(CDVDVideoCodecIMX::m_codecBufferLock);
   m_frameBuffer = buffer;
   m_rendered = false;
 }
 
-VpuDecRetCode CDVDVideoCodecIMXBuffer::ClearDisplay(VpuDecHandle *handle)
+VpuDecRetCode CDVDVideoCodecIMXBuffer::ReleaseFramebuffer(VpuDecHandle *handle)
 {
-  VpuDecRetCode ret = VPU_DecOutFrameDisplayed(*handle, m_frameBuffer);
+  CSingleLock lock(CDVDVideoCodecIMX::m_codecBufferLock);
+  VpuDecRetCode ret = VPU_DEC_RET_FAILURE;
+
+  if((m_frameBuffer != NULL) && *handle)
+  {
+    ret = VPU_DecOutFrameDisplayed(*handle, m_frameBuffer);
+    if(ret != VPU_DEC_RET_SUCCESS)
+      CLog::Log(LOGERROR, "%s: vpu clear frame display failure: ret=%d \r\n",__FUNCTION__,ret);
+  }
 #ifdef TRACE_FRAMES
   CLog::Log(LOGDEBUG, "-  %02d\n", m_idx);
 #endif
