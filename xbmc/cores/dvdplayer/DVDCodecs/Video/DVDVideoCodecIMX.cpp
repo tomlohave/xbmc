@@ -555,6 +555,7 @@ int CDVDVideoCodecIMX::Decode(BYTE *pData, int iSize, double dts, double pts)
   uint8_t *demuxer_content = pData;
   bool retry = false;
   bool frameConsumed = false;
+  bool needPtsPop = false;
 
 #ifdef IMX_PROFILE
   static unsigned long long previous, current;
@@ -608,9 +609,15 @@ int CDVDVideoCodecIMX::Decode(BYTE *pData, int iSize, double dts, double pts)
     if (m_usePTS)
     {
       if (pts != DVD_NOPTS_VALUE)
+      {
         m_pts.push(-pts);
+        needPtsPop = true;
+      }
       else if (dts !=  DVD_NOPTS_VALUE)
+      {
         m_pts.push(-dts);
+        needPtsPop = true;
+      }
     }
 
     inData.nSize = demuxer_bytes;
@@ -700,6 +707,8 @@ int CDVDVideoCodecIMX::Decode(BYTE *pData, int iSize, double dts, double pts)
           goto out_error;
         }
         retStatus |= VC_PICTURE;
+        // No need to pop the queue again since this is done in GetImage
+        needPtsPop = false;
       } //VPU_DEC_OUTPUT_DIS
 
       // According to libfslvpuwrap: If this flag is set then the frame should
@@ -778,9 +787,10 @@ int CDVDVideoCodecIMX::Decode(BYTE *pData, int iSize, double dts, double pts)
   } //(pData && iSize)
 
   if (retStatus == 0)
-  {
     retStatus |= VC_BUFFER;
-  }
+
+  if (needPtsPop)
+    m_pts.pop();
 
   if (frameConsumed && !(retStatus & VC_PICTURE) && m_modeDeinterlace)
   {
@@ -800,6 +810,9 @@ int CDVDVideoCodecIMX::Decode(BYTE *pData, int iSize, double dts, double pts)
   return retStatus;
 
 out_error:
+  if (needPtsPop)
+    m_pts.pop();
+
   return VC_ERROR;
 }
 
