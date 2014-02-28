@@ -26,6 +26,7 @@
 #include "threads/CriticalSection.h"
 #include "utils/BitstreamConverter.h"
 
+#include <queue>
 
 //#define IMX_PROFILE
 #define TRACE_FRAMES
@@ -65,8 +66,6 @@ public:
   bool                     Rendered() const;
   void                     Queue(VpuDecOutFrameInfo *frameInfo);
   VpuDecRetCode            ReleaseFramebuffer(VpuDecHandle *handle);
-  void                     SetPts(double pts);
-  double                   GetPts(void) const;
 
 protected:
   // private because we are reference counted
@@ -193,6 +192,7 @@ protected:
   int                 m_frameCounter;      // Decoded frames counter
   bool                m_usePTS;            // State whether pts out of decoding process should be used
   int                 m_modeDeinterlace;   // Deinterlacer mode: 0=off, 1=high, 2..=low
+  std::priority_queue<double>  m_pts;
   VpuDecOutFrameInfo  m_frameInfo;
   CBitstreamConverter *m_converter;
   bool                m_convert_bitstream;
